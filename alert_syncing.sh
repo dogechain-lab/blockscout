@@ -31,7 +31,7 @@ EOT
 }
 
 post_alarm() {
-  curl $ \
+  curl $RECEIVER_URL \
     -H "Content-Type: application/json" \
     -d "${1}"
 }
@@ -51,6 +51,6 @@ sleep $((SLEEP_MINUTE*60))
 block2=$(query_current_block)
 
 if [[ "$block1" -eq "$block2" ]]; then
-  content="block stop upgrading after $(echo $((block1))"
+  content="block stop upgrading after $(echo $((block1)))"
   post_alarm "$(generate_post_data \${content})"
 fi
