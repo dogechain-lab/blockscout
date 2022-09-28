@@ -174,27 +174,28 @@ defmodule Explorer.Chain.Import.Runner.Addresses do
     if Enum.empty?(ordered_created_contract_hashes) do
       {:ok, []}
     else
-      query =
-        from(t in Transaction,
-          where: t.created_contract_address_hash in ^ordered_created_contract_hashes,
-          # Enforce Transaction ShareLocks order (see docs: sharelocks.md)
-          order_by: t.hash,
-          lock: "FOR UPDATE"
-        )
+      {:ok, []}
+      # query =
+      #   from(t in Transaction,
+      #     where: t.created_contract_address_hash in ^ordered_created_contract_hashes,
+      #     # Enforce Transaction ShareLocks order (see docs: sharelocks.md)
+      #     order_by: t.hash,
+      #     lock: "FOR UPDATE"
+      #   )
 
-      try do
-        {_, result} =
-          repo.update_all(
-            from(t in Transaction, join: s in subquery(query), on: t.hash == s.hash),
-            [set: [created_contract_code_indexed_at: timestamps.updated_at]],
-            timeout: timeout
-          )
+      # try do
+      #   {_, result} =
+      #     repo.update_all(
+      #       from(t in Transaction, join: s in subquery(query), on: t.hash == s.hash),
+      #       [set: [created_contract_code_indexed_at: timestamps.updated_at]],
+      #       timeout: timeout
+      #     )
 
-        {:ok, result}
-      rescue
-        postgrex_error in Postgrex.Error ->
-          {:error, %{exception: postgrex_error, transaction_hashes: ordered_created_contract_hashes}}
-      end
+      #   {:ok, result}
+      # rescue
+      #   postgrex_error in Postgrex.Error ->
+      #     {:error, %{exception: postgrex_error, transaction_hashes: ordered_created_contract_hashes}}
+      # end
     end
   end
 end
