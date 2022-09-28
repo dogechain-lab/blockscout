@@ -864,7 +864,7 @@ msgstr ""
 #: lib/block_scout_web/templates/smart_contract/_functions.html.eex:146
 #, elixir-autogen, elixir-format
 msgid "ETH"
-msgstr ""
+msgstr "Doge"
 
 #: lib/block_scout_web/templates/api_docs/eth_rpc.html.eex:4
 #, elixir-autogen, elixir-format
@@ -957,7 +957,7 @@ msgstr ""
 #: lib/block_scout_web/views/wei_helpers.ex:78
 #, elixir-autogen, elixir-format
 msgid "Ether"
-msgstr ""
+msgstr "Doge"
 
 #: lib/block_scout_web/templates/api_docs/_action_tile.html.eex:211
 #: lib/block_scout_web/templates/api_docs/_eth_rpc_item.html.eex:164

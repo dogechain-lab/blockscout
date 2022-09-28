@@ -1,7 +1,7 @@
 import Config
 
 config :indexer,
-  block_interval: :timer.seconds(5),
+  block_interval: :timer.seconds(2),
   json_rpc_named_arguments: [
     transport:
       if(System.get_env("ETHEREUM_JSONRPC_TRANSPORT", "http") == "http",
