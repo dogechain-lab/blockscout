@@ -22,7 +22,7 @@ defmodule Indexer.Block.Fetcher do
     CoinBalance,
     ContractCode,
     InternalTransaction,
-    ReplacedTransaction,
+    # ReplacedTransaction,
     Token,
     TokenBalance,
     # TokenInstance,
@@ -309,19 +309,19 @@ defmodule Indexer.Block.Fetcher do
 
   def async_import_uncles(_), do: :ok
 
-  def async_import_replaced_transactions(%{transactions: transactions}) do
-    transactions
-    |> Enum.flat_map(fn
-      %Transaction{block_hash: %Hash{} = block_hash, nonce: nonce, from_address_hash: %Hash{} = from_address_hash} ->
-        [%{block_hash: block_hash, nonce: nonce, from_address_hash: from_address_hash}]
+  # def async_import_replaced_transactions(%{transactions: transactions}) do
+  #   transactions
+  #   |> Enum.flat_map(fn
+  #     %Transaction{block_hash: %Hash{} = block_hash, nonce: nonce, from_address_hash: %Hash{} = from_address_hash} ->
+  #       [%{block_hash: block_hash, nonce: nonce, from_address_hash: from_address_hash}]
 
-      %Transaction{block_hash: nil} ->
-        []
-    end)
-    |> ReplacedTransaction.async_fetch(10_000)
-  end
+  #     %Transaction{block_hash: nil} ->
+  #       []
+  #   end)
+  #   |> ReplacedTransaction.async_fetch(10_000)
+  # end
 
-  def async_import_replaced_transactions(_), do: :ok
+  # def async_import_replaced_transactions(_), do: :ok
 
   defp block_reward_errors_to_block_numbers(block_reward_errors) when is_list(block_reward_errors) do
     Enum.map(block_reward_errors, &block_reward_error_to_block_number/1)

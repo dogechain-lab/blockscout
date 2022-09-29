@@ -21,7 +21,7 @@ defmodule Indexer.Supervisor do
     EmptyBlocksSanitizer,
     InternalTransaction,
     PendingTransaction,
-    ReplacedTransaction,
+    # ReplacedTransaction,
     Token,
     TokenBalance,
     # TokenInstance,
@@ -125,7 +125,7 @@ defmodule Indexer.Supervisor do
       {ContractCode.Supervisor, [[json_rpc_named_arguments: json_rpc_named_arguments, memory_monitor: memory_monitor]]},
       {TokenBalance.Supervisor, [[json_rpc_named_arguments: json_rpc_named_arguments, memory_monitor: memory_monitor]]},
       {TokenUpdater.Supervisor, [[json_rpc_named_arguments: json_rpc_named_arguments, memory_monitor: memory_monitor]]},
-      {ReplacedTransaction.Supervisor, [[memory_monitor: memory_monitor]]},
+      # {ReplacedTransaction.Supervisor, [[memory_monitor: memory_monitor]]},
 
       # Out-of-band fetchers
       {CoinBalanceOnDemand.Supervisor, [json_rpc_named_arguments]},

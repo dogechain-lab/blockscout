@@ -16,7 +16,7 @@ defmodule Indexer.Block.Realtime.Fetcher do
       async_import_block_rewards: 1,
       async_import_created_contract_codes: 1,
       async_import_internal_transactions: 1,
-      async_import_replaced_transactions: 1,
+      # async_import_replaced_transactions: 1,
       async_import_tokens: 1,
       async_import_token_balances: 1,
       # async_import_token_instances: 1,
@@ -403,7 +403,7 @@ defmodule Indexer.Block.Realtime.Fetcher do
     async_import_token_balances(imported)
     # async_import_token_instances(imported)
     async_import_uncles(imported)
-    async_import_replaced_transactions(imported)
+    # async_import_replaced_transactions(imported)
   end
 
   defp balances(
