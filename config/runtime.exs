@@ -12,7 +12,7 @@ indexer_memory_limit =
   end
 
 config :indexer,
-  memory_limit: indexer_memory_limit <<< 37
+  memory_limit: indexer_memory_limit <<< 30
 
 indexer_empty_blocks_sanitizer_batch_size =
   if System.get_env("INDEXER_EMPTY_BLOCKS_SANITIZER_BATCH_SIZE") do
