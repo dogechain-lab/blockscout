@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Usage: $0 alert_receiver_url
+# Usage: $0 network alert_receiver_url
 # Simple alert from some webhook url would do this job.
 # curl and jq must be installed.
 
-RECEIVER_URL=$1
+NETWORK=$1
+RECEIVER_URL=$2
 
 HOSTNAME=$((hostname))
 IP=$((hostname -i))
 
 HOST="http://127.0.0.1:4000"
 PROJECT_NAME="DogeChain"
-NETWORK="testnet"
 PROGRAM_NAME="blockscout"
 
 SLEEP_MINUTE=1
