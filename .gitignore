@@ -11,6 +11,7 @@
 
 # mix dialyzer artifacts
 /priv/plts
+package-lock.json
 
 # Generated on crash by the VM
 erl_crash.dump

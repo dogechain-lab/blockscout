@@ -52,21 +52,21 @@
     ) %>
   <% end %>
   <%= if contract?(@address) do %>
-    <%= link(
-        to: AccessHelpers.get_path(@conn, :address_contract_path, :index, @address.hash),
-        class: "card-tab #{tab_status("contracts", @conn.request_path)}") do %>
-        <%= gettext("Code") %>
-      <%= if smart_contract_verified?(@address) do %>
-        <%= cond do %>
-          <% Enum.member?(dark_forest_addresses_list, current_address) -> %>
-            <i class="check_dark_forest_icon">
-              <%= render BlockScoutWeb.IconsView, "_check_dark_forest_icon.html" %>
-            </i>
-          <% true -> %>
-            <i class="fa-regular fa-check-circle"></i>
-        <% end %>
+  <%= link(
+      to: AccessHelpers.get_path(@conn, :address_contract_path, :index, @address.hash),
+      class: "card-tab #{tab_status("contracts", @conn.request_path)}") do %>
+      <%= gettext("Code") %>
+    <%= if smart_contract_verified?(@address) do %>
+      <%= cond do %>
+        <% Enum.member?(dark_forest_addresses_list, current_address) -> %>
+          <i class="check_dark_forest_icon">
+            <%= render BlockScoutWeb.IconsView, "_check_dark_forest_icon.html" %>
+          </i>
+        <% true -> %>
+          <i class="fa-regular fa-check-circle"></i>
       <% end %>
     <% end %>
+  <% end %>
   <% end %>
   <%= if has_decompiled_code?(@address) do %>
     <%= link(

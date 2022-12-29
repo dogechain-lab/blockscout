@@ -978,6 +978,7 @@ defmodule Explorer.Chain do
   def block_to_priority_fee_of_1559_txs(block_hash) do
     block = Repo.get_by(Block, hash: block_hash)
 
+<<<<<<< HEAD
     case block.base_fee_per_gas do
       %Wei{value: base_fee_per_gas} ->
         query =
@@ -1007,6 +1008,26 @@ defmodule Explorer.Chain do
                   tx.gas_used
                 )
               )
+=======
+    query =
+      from(
+        tx in Transaction,
+        where: tx.block_hash == ^block_hash,
+        where: not is_nil(tx.max_priority_fee_per_gas),
+        select:
+          sum(
+            fragment(
+              "CASE
+                WHEN ? = 0 THEN 0
+                WHEN ? < ? THEN ?
+                ELSE ? END",
+              tx.max_fee_per_gas,
+              tx.max_fee_per_gas - ^base_fee_per_gas,
+              tx.max_priority_fee_per_gas,
+              (tx.max_fee_per_gas - ^base_fee_per_gas) * tx.gas_used,
+              tx.max_priority_fee_per_gas * tx.gas_used
+            )
+>>>>>>> origin
           )
 
         result = Repo.one(query)
@@ -3033,7 +3054,11 @@ defmodule Explorer.Chain do
             missing_range in fragment(
               """
                 (SELECT b1.number
+<<<<<<< HEAD
                 FROM generate_series((?)::integer, (?)::integer) AS b1(number)
+=======
+                FROM generate_series(0, (?)::integer) AS b1(number)
+>>>>>>> origin
                 WHERE NOT EXISTS
                   (SELECT 1 FROM blocks b2 WHERE b2.number=b1.number AND b2.consensus))
               """,
@@ -3119,8 +3144,12 @@ defmodule Explorer.Chain do
         right_join:
           missing_range in fragment(
             """
+<<<<<<< HEAD
             (
               SELECT distinct b1.number
+=======
+              (SELECT distinct b1.number
+>>>>>>> origin
               FROM generate_series((?)::integer, (?)::integer) AS b1(number)
               WHERE NOT EXISTS
                 (SELECT 1 FROM blocks b2 WHERE b2.number=b1.number AND b2.consensus)
@@ -4916,6 +4945,513 @@ defmodule Explorer.Chain do
     end
   end
 
+<<<<<<< HEAD
+=======
+  defp set_token_bridged_status(token_address_hash, status) do
+    case Repo.get(Token, token_address_hash) do
+      %Explorer.Chain.Token{bridged: bridged} = target_token ->
+        if !bridged do
+          token = Changeset.change(target_token, bridged: status)
+
+          Repo.update(token)
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp insert_bridged_token_metadata(token_address_hash, %{
+         foreign_chain_id: foreign_chain_id,
+         foreign_token_address_hash: foreign_token_address_hash,
+         custom_metadata: custom_metadata,
+         custom_cap: custom_cap,
+         lp_token: lp_token,
+         type: type
+       }) do
+    target_token = Repo.get(Token, token_address_hash)
+
+    if target_token do
+      {:ok, _} =
+        Repo.insert(
+          %BridgedToken{
+            home_token_contract_address_hash: token_address_hash,
+            foreign_chain_id: foreign_chain_id,
+            foreign_token_contract_address_hash: foreign_token_address_hash,
+            custom_metadata: custom_metadata,
+            custom_cap: custom_cap,
+            lp_token: lp_token,
+            type: type
+          },
+          on_conflict: :nothing
+        )
+    end
+  end
+
+  # Fetches custom metadata for bridged tokens from the node.
+  # Currently, gets Balancer token composite tokens with their weights
+  # from foreign chain
+  defp get_bridged_token_custom_metadata(foreign_token_address_hash, json_rpc_named_arguments, foreign_json_rpc)
+       when not is_nil(foreign_json_rpc) and foreign_json_rpc !== "" do
+    eth_call_foreign_json_rpc_named_arguments =
+      compose_foreign_json_rpc_named_arguments(json_rpc_named_arguments, foreign_json_rpc)
+
+    balancer_custom_metadata(foreign_token_address_hash, eth_call_foreign_json_rpc_named_arguments) ||
+      sushiswap_custom_metadata(foreign_token_address_hash, eth_call_foreign_json_rpc_named_arguments)
+  end
+
+  defp get_bridged_token_custom_metadata(_foreign_token_address_hash, _json_rpc_named_arguments, foreign_json_rpc)
+       when is_nil(foreign_json_rpc) do
+    nil
+  end
+
+  defp get_bridged_token_custom_metadata(_foreign_token_address_hash, _json_rpc_named_arguments, foreign_json_rpc)
+       when foreign_json_rpc == "" do
+    nil
+  end
+
+  defp balancer_custom_metadata(foreign_token_address_hash, eth_call_foreign_json_rpc_named_arguments) do
+    # keccak 256 from getCurrentTokens()
+    get_current_tokens_signature = "0xcc77828d"
+
+    case get_current_tokens_signature
+         |> Contract.eth_call_request(foreign_token_address_hash, 1, nil, nil)
+         |> json_rpc(eth_call_foreign_json_rpc_named_arguments) do
+      {:ok, "0x"} ->
+        nil
+
+      {:ok, "0x" <> balancer_current_tokens_encoded} ->
+        [balancer_current_tokens] =
+          try do
+            balancer_current_tokens_encoded
+            |> Base.decode16!(case: :mixed)
+            |> TypeDecoder.decode_raw([{:array, :address}])
+          rescue
+            _ -> []
+          end
+
+        bridged_token_custom_metadata =
+          parse_bridged_token_custom_metadata(
+            balancer_current_tokens,
+            eth_call_foreign_json_rpc_named_arguments,
+            foreign_token_address_hash
+          )
+
+        if is_map(bridged_token_custom_metadata) do
+          tokens = Map.get(bridged_token_custom_metadata, :tokens)
+          weights = Map.get(bridged_token_custom_metadata, :weights)
+
+          if tokens == "" do
+            nil
+          else
+            if weights !== "", do: "#{tokens} #{weights}", else: tokens
+          end
+        else
+          nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp sushiswap_custom_metadata(foreign_token_address_hash, eth_call_foreign_json_rpc_named_arguments) do
+    # keccak 256 from token0()
+    token0_signature = "0x0dfe1681"
+
+    # keccak 256 from token1()
+    token1_signature = "0xd21220a7"
+
+    # keccak 256 from name()
+    name_signature = "0x06fdde03"
+
+    # keccak 256 from symbol()
+    symbol_signature = "0x95d89b41"
+
+    with {:ok, "0x" <> token0_encoded} <-
+           token0_signature
+           |> Contract.eth_call_request(foreign_token_address_hash, 1, nil, nil)
+           |> json_rpc(eth_call_foreign_json_rpc_named_arguments),
+         {:ok, "0x" <> token1_encoded} <-
+           token1_signature
+           |> Contract.eth_call_request(foreign_token_address_hash, 2, nil, nil)
+           |> json_rpc(eth_call_foreign_json_rpc_named_arguments) do
+      token0_hash = parse_contract_response(token0_encoded, :address)
+      token1_hash = parse_contract_response(token1_encoded, :address)
+
+      if token0_hash && token1_hash do
+        token0_hash_str = "0x" <> Base.encode16(token0_hash, case: :lower)
+        token1_hash_str = "0x" <> Base.encode16(token1_hash, case: :lower)
+
+        with {:ok, "0x" <> token0_name_encoded} <-
+               name_signature
+               |> Contract.eth_call_request(token0_hash_str, 1, nil, nil)
+               |> json_rpc(eth_call_foreign_json_rpc_named_arguments),
+             {:ok, "0x" <> token1_name_encoded} <-
+               name_signature
+               |> Contract.eth_call_request(token1_hash_str, 2, nil, nil)
+               |> json_rpc(eth_call_foreign_json_rpc_named_arguments),
+             {:ok, "0x" <> token0_symbol_encoded} <-
+               symbol_signature
+               |> Contract.eth_call_request(token0_hash_str, 1, nil, nil)
+               |> json_rpc(eth_call_foreign_json_rpc_named_arguments),
+             {:ok, "0x" <> token1_symbol_encoded} <-
+               symbol_signature
+               |> Contract.eth_call_request(token1_hash_str, 2, nil, nil)
+               |> json_rpc(eth_call_foreign_json_rpc_named_arguments) do
+          token0_name = parse_contract_response(token0_name_encoded, :string, {:bytes, 32})
+          token1_name = parse_contract_response(token1_name_encoded, :string, {:bytes, 32})
+          token0_symbol = parse_contract_response(token0_symbol_encoded, :string, {:bytes, 32})
+          token1_symbol = parse_contract_response(token1_symbol_encoded, :string, {:bytes, 32})
+
+          "#{token0_name}/#{token1_name} (#{token0_symbol}/#{token1_symbol})"
+        else
+          _ ->
+            nil
+        end
+      else
+        nil
+      end
+    else
+      _ ->
+        nil
+    end
+  end
+
+  def calc_lp_tokens_total_liqudity do
+    json_rpc_named_arguments = Application.get_env(:explorer, :json_rpc_named_arguments)
+    foreign_json_rpc = Application.get_env(:block_scout_web, :foreign_json_rpc)
+    bridged_mainnet_tokens_list = BridgedToken.get_unprocessed_mainnet_lp_tokens_list()
+
+    Enum.each(bridged_mainnet_tokens_list, fn bridged_token ->
+      case calc_sushiswap_lp_tokens_cap(
+             bridged_token.home_token_contract_address_hash,
+             bridged_token.foreign_token_contract_address_hash,
+             json_rpc_named_arguments,
+             foreign_json_rpc
+           ) do
+        {:ok, new_custom_cap} ->
+          bridged_token
+          |> Changeset.change(%{custom_cap: new_custom_cap, lp_token: true})
+          |> Repo.update()
+
+        {:error, :not_lp_token} ->
+          bridged_token
+          |> Changeset.change(%{lp_token: false})
+          |> Repo.update()
+      end
+    end)
+
+    Logger.debug(fn -> "Total liqudity fetched for LP tokens" end)
+  end
+
+  defp calc_sushiswap_lp_tokens_cap(
+         home_token_contract_address_hash,
+         foreign_token_address_hash,
+         json_rpc_named_arguments,
+         foreign_json_rpc
+       ) do
+    eth_call_foreign_json_rpc_named_arguments =
+      compose_foreign_json_rpc_named_arguments(json_rpc_named_arguments, foreign_json_rpc)
+
+    # keccak 256 from getReserves()
+    get_reserves_signature = "0x0902f1ac"
+
+    # keccak 256 from token0()
+    token0_signature = "0x0dfe1681"
+
+    # keccak 256 from token1()
+    token1_signature = "0xd21220a7"
+
+    # keccak 256 from totalSupply()
+    total_supply_signature = "0x18160ddd"
+
+    with {:ok, "0x" <> get_reserves_encoded} <-
+           get_reserves_signature
+           |> Contract.eth_call_request(foreign_token_address_hash, 1, nil, nil)
+           |> json_rpc(eth_call_foreign_json_rpc_named_arguments),
+         {:ok, "0x" <> home_token_total_supply_encoded} <-
+           total_supply_signature
+           |> Contract.eth_call_request(home_token_contract_address_hash, 1, nil, nil)
+           |> json_rpc(json_rpc_named_arguments),
+         [reserve0, reserve1, _] <-
+           parse_contract_response(get_reserves_encoded, [{:uint, 112}, {:uint, 112}, {:uint, 32}]),
+         {:ok, token0_cap_usd} <-
+           get_lp_token_cap(
+             home_token_total_supply_encoded,
+             token0_signature,
+             reserve0,
+             foreign_token_address_hash,
+             eth_call_foreign_json_rpc_named_arguments
+           ),
+         {:ok, token1_cap_usd} <-
+           get_lp_token_cap(
+             home_token_total_supply_encoded,
+             token1_signature,
+             reserve1,
+             foreign_token_address_hash,
+             eth_call_foreign_json_rpc_named_arguments
+           ) do
+      total_lp_cap = Decimal.add(token0_cap_usd, token1_cap_usd)
+      {:ok, total_lp_cap}
+    else
+      _ ->
+        {:error, :not_lp_token}
+    end
+  end
+
+  defp get_lp_token_cap(
+         home_token_total_supply_encoded,
+         token_signature,
+         reserve,
+         foreign_token_address_hash,
+         eth_call_foreign_json_rpc_named_arguments
+       ) do
+    # keccak 256 from decimals()
+    decimals_signature = "0x313ce567"
+
+    # keccak 256 from totalSupply()
+    total_supply_signature = "0x18160ddd"
+
+    home_token_total_supply =
+      home_token_total_supply_encoded
+      |> parse_contract_response({:uint, 256})
+      |> Decimal.new()
+
+    with {:ok, "0x" <> token_encoded} <-
+           token_signature
+           |> Contract.eth_call_request(foreign_token_address_hash, 1, nil, nil)
+           |> json_rpc(eth_call_foreign_json_rpc_named_arguments) do
+      token_hash = parse_contract_response(token_encoded, :address)
+
+      if token_hash do
+        token_hash_str = "0x" <> Base.encode16(token_hash, case: :lower)
+
+        with {:ok, "0x" <> token_decimals_encoded} <-
+               decimals_signature
+               |> Contract.eth_call_request(token_hash_str, 1, nil, nil)
+               |> json_rpc(eth_call_foreign_json_rpc_named_arguments),
+             {:ok, "0x" <> foreign_token_total_supply_encoded} <-
+               total_supply_signature
+               |> Contract.eth_call_request(foreign_token_address_hash, 1, nil, nil)
+               |> json_rpc(eth_call_foreign_json_rpc_named_arguments) do
+          token_decimals = parse_contract_response(token_decimals_encoded, {:uint, 256})
+
+          foreign_token_total_supply =
+            foreign_token_total_supply_encoded
+            |> parse_contract_response({:uint, 256})
+            |> Decimal.new()
+
+          token_decimals_divider =
+            10
+            |> :math.pow(token_decimals)
+            |> Decimal.from_float()
+
+          token_cap =
+            reserve
+            |> Decimal.div(foreign_token_total_supply)
+            |> Decimal.mult(home_token_total_supply)
+            |> Decimal.div(token_decimals_divider)
+
+          token_price = TokenExchangeRate.fetch_token_exchange_rate_by_address(token_hash_str)
+
+          token_cap_usd =
+            if token_price do
+              token_price
+              |> Decimal.mult(token_cap)
+            else
+              0
+            end
+
+          {:ok, token_cap_usd}
+        end
+      end
+    end
+  end
+
+  defp parse_contract_response(abi_encoded_value, types) when is_list(types) do
+    values =
+      try do
+        abi_encoded_value
+        |> Base.decode16!(case: :mixed)
+        |> TypeDecoder.decode_raw(types)
+      rescue
+        _ -> [nil]
+      end
+
+    values
+  end
+
+  defp parse_contract_response(abi_encoded_value, type, emergency_type \\ nil) do
+    [value] =
+      try do
+        [res] = decode_contract_response(abi_encoded_value, type)
+
+        [convert_binary_to_string(res, type)]
+      rescue
+        _ ->
+          if emergency_type do
+            try do
+              [res] = decode_contract_response(abi_encoded_value, emergency_type)
+
+              [convert_binary_to_string(res, emergency_type)]
+            rescue
+              _ ->
+                [nil]
+            end
+          else
+            [nil]
+          end
+      end
+
+    value
+  end
+
+  defp decode_contract_response(abi_encoded_value, type) do
+    abi_encoded_value
+    |> Base.decode16!(case: :mixed)
+    |> TypeDecoder.decode_raw([type])
+  end
+
+  defp convert_binary_to_string(binary, type) do
+    case type do
+      {:bytes, _} ->
+        ContractState.binary_to_string(binary)
+
+      _ ->
+        binary
+    end
+  end
+
+  defp compose_foreign_json_rpc_named_arguments(json_rpc_named_arguments, foreign_json_rpc)
+       when foreign_json_rpc != "" do
+    {_, eth_call_foreign_json_rpc_named_arguments} =
+      Keyword.get_and_update(json_rpc_named_arguments, :transport_options, fn transport_options ->
+        {_, updated_transport_options} =
+          update_transport_options_set_foreign_json_rpc(transport_options, foreign_json_rpc)
+
+        {transport_options, updated_transport_options}
+      end)
+
+    eth_call_foreign_json_rpc_named_arguments
+  end
+
+  defp compose_foreign_json_rpc_named_arguments(_json_rpc_named_arguments, foreign_json_rpc)
+       when foreign_json_rpc == "" do
+    nil
+  end
+
+  defp compose_foreign_json_rpc_named_arguments(json_rpc_named_arguments, _foreign_json_rpc)
+       when is_nil(json_rpc_named_arguments) do
+    nil
+  end
+
+  defp update_transport_options_set_foreign_json_rpc(transport_options, foreign_json_rpc) do
+    Keyword.get_and_update(transport_options, :method_to_url, fn method_to_url ->
+      {_, updated_method_to_url} =
+        Keyword.get_and_update(method_to_url, :eth_call, fn eth_call ->
+          {eth_call, foreign_json_rpc}
+        end)
+
+      {method_to_url, updated_method_to_url}
+    end)
+  end
+
+  defp parse_bridged_token_custom_metadata(
+         balancer_current_tokens,
+         eth_call_foreign_json_rpc_named_arguments,
+         foreign_token_address_hash
+       ) do
+    balancer_current_tokens
+    |> Enum.reduce(%{:tokens => "", :weights => ""}, fn balancer_token_bytes, balancer_tokens_weights ->
+      balancer_token_hash_without_0x =
+        balancer_token_bytes
+        |> Base.encode16(case: :lower)
+
+      balancer_token_hash = "0x" <> balancer_token_hash_without_0x
+
+      # 95d89b41 = keccak256(symbol())
+      symbol_signature = "0x95d89b41"
+
+      case symbol_signature
+           |> Contract.eth_call_request(balancer_token_hash, 1, nil, nil)
+           |> json_rpc(eth_call_foreign_json_rpc_named_arguments) do
+        {:ok, "0x" <> symbol_encoded} ->
+          [symbol] =
+            symbol_encoded
+            |> Base.decode16!(case: :mixed)
+            |> TypeDecoder.decode_raw([:string])
+
+          # f1b8a9b7 = keccak256(getNormalizedWeight(address))
+          get_normalized_weight_signature = "0xf1b8a9b7"
+
+          get_normalized_weight_arg_abi_encoded =
+            [balancer_token_bytes]
+            |> TypeEncoder.encode([:address])
+            |> Base.encode16(case: :lower)
+
+          get_normalized_weight_abi_encoded = get_normalized_weight_signature <> get_normalized_weight_arg_abi_encoded
+
+          get_normalized_weight_resp =
+            get_normalized_weight_abi_encoded
+            |> Contract.eth_call_request(foreign_token_address_hash, 1, nil, nil)
+            |> json_rpc(eth_call_foreign_json_rpc_named_arguments)
+
+          parse_balancer_weights(get_normalized_weight_resp, balancer_tokens_weights, symbol)
+
+        _ ->
+          nil
+      end
+    end)
+  end
+
+  defp parse_balancer_weights(get_normalized_weight_resp, balancer_tokens_weights, symbol) do
+    case get_normalized_weight_resp do
+      {:ok, "0x" <> normalized_weight_encoded} ->
+        [normalized_weight] =
+          try do
+            normalized_weight_encoded
+            |> Base.decode16!(case: :mixed)
+            |> TypeDecoder.decode_raw([{:uint, 256}])
+          rescue
+            _ ->
+              []
+          end
+
+        normalized_weight_to_100_perc = calc_normalized_weight_to_100_perc(normalized_weight)
+
+        normalized_weight_in_perc =
+          normalized_weight_to_100_perc
+          |> div(1_000_000_000_000_000_000)
+
+        current_tokens = Map.get(balancer_tokens_weights, :tokens)
+        current_weights = Map.get(balancer_tokens_weights, :weights)
+
+        tokens_value = combine_tokens_value(current_tokens, symbol)
+        weights_value = combine_weights_value(current_weights, normalized_weight_in_perc)
+
+        %{:tokens => tokens_value, :weights => weights_value}
+
+      _ ->
+        nil
+    end
+  end
+
+  defp calc_normalized_weight_to_100_perc(normalized_weight) do
+    if normalized_weight, do: 100 * normalized_weight, else: 0
+  end
+
+  defp combine_tokens_value(current_tokens, symbol) do
+    if current_tokens == "", do: symbol, else: current_tokens <> "/" <> symbol
+  end
+
+  defp combine_weights_value(current_weights, normalized_weight_in_perc) do
+    if current_weights == "",
+      do: "#{normalized_weight_in_perc}",
+      else: current_weights <> "/" <> "#{normalized_weight_in_perc}"
+  end
+
+>>>>>>> origin
   @doc """
   Fetches a `t:Token.t/0` by an address hash.
 

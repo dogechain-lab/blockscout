@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/chenhuayi/jury/blockscout1229'
+make: Leaving directory `/Users/chenhuayi/jury/blockscout1229'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+

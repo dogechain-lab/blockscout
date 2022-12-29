@@ -1,0 +1,18 @@
+[Unit]
+  Description=blockscout
+  StartLimitIntervalSec=500
+  StartLimitBurst=5
+
+[Service]
+  Restart=on-failure
+  RestartSec=5s
+  WorkingDirectory=/data/blockscout
+  ExecStartPre=
+  ExecStart=/usr/bin/bash ./testnet_start.sh
+  Type=simple
+  User=centos
+  KillSignal=SIGINT
+  TimeoutStopSec=120
+
+[Install]
+  WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+[Unit]
+  Description=blockscout
+
+[Service]
+  Restart=on-failure
+  RestartSec=5s
+  WorkingDirectory=/data/blockscout
+  EnvironmentFile=-/data/blockscout/common-blockscout-mainnet.env
+  ExecStartPre=
+  ExecStart=/usr/bin/mix phx.server
+  Type=simple
+  User=centos
+  TimeoutStopSec=120
+  LimitNOFILE=65535
+  LimitNPROC=65535
+
+[Install]
+  WantedBy=multi-user.target

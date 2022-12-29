@@ -3,7 +3,49 @@
 import Config
 
 config :indexer,
+<<<<<<< HEAD
   ecto_repos: [Explorer.Repo]
+=======
+  block_transformer: block_transformer,
+  ecto_repos: [Explorer.Repo],
+  metadata_updater_seconds_interval:
+    String.to_integer(System.get_env("TOKEN_METADATA_UPDATE_INTERVAL") || "#{2 * 24 * 60 * 60}"),
+  # bytes
+  memory_limit: 10 <<< 30,
+  first_block: System.get_env("FIRST_BLOCK") || "",
+  last_block: System.get_env("LAST_BLOCK") || "",
+  trace_first_block: System.get_env("TRACE_FIRST_BLOCK") || "",
+  trace_last_block: System.get_env("TRACE_LAST_BLOCK") || ""
+
+config :indexer, Indexer.Fetcher.PendingTransaction.Supervisor,
+  disabled?:
+    System.get_env("ETHEREUM_JSONRPC_VARIANT") == "besu" ||
+      System.get_env("INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER", "false") == "true"
+
+token_balance_on_demand_fetcher_threshold =
+  if System.get_env("TOKEN_BALANCE_ON_DEMAND_FETCHER_THRESHOLD_MINUTES") do
+    case Integer.parse(System.get_env("TOKEN_BALANCE_ON_DEMAND_FETCHER_THRESHOLD_MINUTES")) do
+      {integer, ""} -> integer
+      _ -> 60
+    end
+  else
+    60
+  end
+
+config :indexer, Indexer.Fetcher.TokenBalanceOnDemand, threshold: token_balance_on_demand_fetcher_threshold
+
+coin_balance_on_demand_fetcher_threshold =
+  if System.get_env("COIN_BALANCE_ON_DEMAND_FETCHER_THRESHOLD_MINUTES") do
+    case Integer.parse(System.get_env("COIN_BALANCE_ON_DEMAND_FETCHER_THRESHOLD_MINUTES")) do
+      {integer, ""} -> integer
+      _ -> 60
+    end
+  else
+    60
+  end
+
+config :indexer, Indexer.Fetcher.CoinBalanceOnDemand, threshold: coin_balance_on_demand_fetcher_threshold
+>>>>>>> origin
 
 # config :indexer, Indexer.Fetcher.ReplacedTransaction.Supervisor, disabled?: true
 

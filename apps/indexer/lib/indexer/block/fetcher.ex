@@ -265,7 +265,8 @@ defmodule Indexer.Block.Fetcher do
       }) do
     addresses
     |> Enum.map(fn %Address{hash: address_hash} ->
-      block_number = Map.fetch!(address_hash_to_block_number, to_string(address_hash))
+      new_map = for {k, v} <- address_hash_to_block_number, into: %{}, do: {String.downcase(k), v}
+      block_number = Map.fetch!(new_map, to_string(address_hash))
       %{address_hash: address_hash, block_number: block_number}
     end)
     |> CoinBalance.async_fetch_balances()

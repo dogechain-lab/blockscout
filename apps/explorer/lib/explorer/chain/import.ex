@@ -296,6 +296,17 @@ defmodule Explorer.Chain.Import do
 
   def insert_changes_list(repo, changes_list, options) when is_atom(repo) and is_list(changes_list) do
     ecto_schema_module = Keyword.fetch!(options, :for)
+    #newchanges_list =
+    #  changes_list
+    #  |> Enum.filter(fn x -> x.hash == '\x0000000000000000000000000000000000000000' end)
+
+    #newchanges_list =
+    #  changes_list
+    #  |> Enum.reject(&(&1.hash == '0000000000000000000000000000000000000000'))
+
+    #newchanges_list = 
+    #  changes_list
+    #  |> Enum.reject(&(&1.hash == '\x0000000000000000000000000000000000000000'))
 
     timestamped_changes_list = timestamp_changes_list(changes_list, Keyword.fetch!(options, :timestamps))
 
@@ -307,6 +318,10 @@ defmodule Explorer.Chain.Import do
       )
 
     {:ok, inserted}
+  end
+
+  defp delete_itemzero_from_list(changes_list) when is_list(changes_list) do
+    Enum.reject(changes_list, fn x -> x.hash == '\x0000000000000000000000000000000000000000' end)
   end
 
   defp timestamp_changes_list(changes_list, timestamps) when is_list(changes_list) do

@@ -20,7 +20,7 @@ defmodule Explorer.Chain.Import.Runner.Blocks do
   @behaviour Runner
 
   # milliseconds
-  @timeout 60_000
+  @timeout 120_000
 
   @type imported :: [Block.t()]
 
