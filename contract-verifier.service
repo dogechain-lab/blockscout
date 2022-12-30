@@ -1,0 +1,17 @@
+[Unit]
+  Description=contract-verifier
+
+[Service]
+  Restart=on-failure
+  RestartSec=5s
+  WorkingDirectory=/data/blockscout-rs/smart-contract-verifier
+  ExecStartPre=
+  ExecStart=/data/blockscout-rs/smart-contract-verifier/target/release/smart-contract-verifier-http
+  Type=simple
+  User=centos
+  TimeoutStopSec=120
+  LimitNOFILE=65535
+  LimitNPROC=65535
+
+[Install]
+  WantedBy=multi-user.target
