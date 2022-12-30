@@ -57,7 +57,6 @@ services:
       -  ./envs/common-blockscout.env
     ports:
       - 4000:4000
-<<<<<<< HEAD
     volumes:
       - ./logs/:/app/logs/
 
@@ -78,5 +77,3 @@ services:
       -  ./envs/common-visualizer.env
     ports:
       - 8050:8050
-=======
->>>>>>> origin

@@ -175,14 +175,11 @@ defmodule Explorer.Chain.Import.Runner.Addresses do
     )
   end
 
-<<<<<<< HEAD
-=======
   defp sort_changes_list(changes_list) do
     Enum.sort_by(changes_list, & &1.hash)
     |> Enum.dedup_by(& &1.hash)
   end
 
->>>>>>> origin
   defp update_transactions(repo, addresses, %{timeout: timeout, timestamps: timestamps}) do
     ordered_created_contract_hashes =
       addresses

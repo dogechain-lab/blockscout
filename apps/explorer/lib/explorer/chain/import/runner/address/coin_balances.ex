@@ -78,15 +78,8 @@ defmodule Explorer.Chain.Import.Runner.Address.CoinBalances do
     on_conflict = Map.get_lazy(options, :on_conflict, &default_on_conflict/0)
 
     # Enforce CoinBalance ShareLocks order (see docs: sharelocks.md)
-<<<<<<< HEAD
-    ordered_changes_list =
-      changes_list
-      |> Enum.sort_by(&{&1.address_hash, &1.block_number})
-      |> Enum.dedup()
-=======
     ordered_changes_list = Enum.sort_by(changes_list, &{&1.address_hash, &1.block_number})
     |> Enum.dedup_by(&{&1.address_hash, &1.block_number})
->>>>>>> origin
 
     {:ok, _} =
       Import.insert_changes_list(
