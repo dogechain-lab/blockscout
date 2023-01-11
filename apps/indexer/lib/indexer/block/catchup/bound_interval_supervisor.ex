@@ -289,6 +289,20 @@ defmodule Indexer.Block.Catchup.BoundIntervalSupervisor do
   end
 
   def handle_info(
+        {_ref, {:error, :eaddrnotavail}},
+        %__MODULE__{} = state
+      ) do
+
+    Logger.error(fn ->
+      "Catchup index stream exited because the archive node endpoint is unavailable. Restarting"
+    end)
+
+    send(self(), :catchup_index)
+
+    {:noreply, %__MODULE__{state | task: nil}}
+  end
+
+  def handle_info(
         {_ref, {:error, :econnrefused}},
         %__MODULE__{
           fetcher: %Catchup.Fetcher{
@@ -333,4 +347,15 @@ defmodule Indexer.Block.Catchup.BoundIntervalSupervisor do
 
     {:noreply, %__MODULE__{state | task: nil}}
   end
+
+  def handle_info(
+        {:DOWN, _ref, :process, _pid, :normal},
+        %__MODULE__{} = state
+      ) do
+
+    Logger.error(fn -> "Catchup index stream exited with normal." end)
+
+    {:noreply, %__MODULE__{state | task: nil}}
+  end
+
 end
