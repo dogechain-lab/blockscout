@@ -5,6 +5,15 @@ defmodule BlockScoutWeb.CurrencyHelpers do
 
   alias BlockScoutWeb.CldrHelper.Number
 
+
+  def transfer_erc20_to_dog20(value) do
+    case value do
+      "ERC-20" -> "DOG-20"
+      _ -> value
+    end
+  end
+
+
   @doc """
   Formats the given integer value to a currency format.
 
