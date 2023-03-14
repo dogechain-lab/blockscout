@@ -9,6 +9,8 @@ defmodule BlockScoutWeb.CurrencyHelpers do
   def transfer_erc20_to_dog20(value) do
     case value do
       "ERC-20" -> "DOG-20"
+      "ERC-721" -> "DOG-721"
+      "ERC-1155" -> "DOG-1155"
       _ -> value
     end
   end
