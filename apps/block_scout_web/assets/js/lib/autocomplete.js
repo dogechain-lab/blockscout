@@ -1,6 +1,5 @@
 import $ from 'jquery'
 import AutoComplete from '@tarekraafat/autocomplete.js/dist/autoComplete'
-import { getTextAdData, fetchTextAdData } from './ad'
 import { DateTime } from 'luxon'
 import { appendTokenIcon } from './token_icon'
 import { escapeHtml } from './utils'
@@ -43,8 +42,6 @@ const resultsListElement = (list, data) => {
   }
 
   list.prepend(info)
-
-  fetchTextAdData()
 }
 export const searchEngine = (query, record) => {
   const queryLowerCase = query.toLowerCase()
@@ -159,17 +156,6 @@ const openOnFocus = (event, type) => {
     } else if (type === 'mobile') {
       autoCompleteJSMobile.start(query)
     }
-  } else {
-    getTextAdData()
-      .then(({ data: adData, inHouse: _inHouse }) => {
-        if (adData) {
-          if (type === 'desktop') {
-            autoCompleteJS.start('###')
-          } else if (type === 'mobile') {
-            autoCompleteJSMobile.start('###')
-          }
-        }
-      })
   }
 }
 

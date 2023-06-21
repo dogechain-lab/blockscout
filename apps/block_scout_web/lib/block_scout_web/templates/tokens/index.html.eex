@@ -4,7 +4,6 @@
 	data-chain-id="<%= Application.get_env(:block_scout_web, :chain_id) %>"
 	data-display-token-icons="<%= System.get_env("DISPLAY_TOKEN_ICONS") %>"
 >
-  <%= render BlockScoutWeb.Advertisement.TextAdView, "index.html", conn: @conn %>
   <div class="card">
     <div class="card-body" data-async-load data-async-listing="<%= @current_path %>" data-no-self-calls>
 	  <h1 class="card-title list-title-description"><%= gettext "Tokens" %></h1>
