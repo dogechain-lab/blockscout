@@ -1,4 +1,4 @@
 <!-- Coinzilla Banner 728x90 -->
 <div class="ad-container mt-4 mb-4">
-    <iframe src="/banner.html" credentialless="true" sandbox="allow-same-origin" referrerpolicy="no-referrer-when-downgrade" width="auto" height="90px" loading="lazy" scrolling="no" frameborder="0"></iframe>
+    <iframe src="/banner.html" credentialless="true" sandbox="allow-scripts" referrerpolicy="no-referrer-when-downgrade" width="auto" height="90px" loading="lazy" scrolling="no" frameborder="0"></iframe>
 </div>
