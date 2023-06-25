@@ -9,6 +9,8 @@ User-agent: SemrushBot
 Disallow: /
 User-agent: dotbot
 Disallow: /
+User-agent: MJ12bot
+Disallow: /
 User-agent: *
 Disallow: /txs
 Disallow: /tx/
