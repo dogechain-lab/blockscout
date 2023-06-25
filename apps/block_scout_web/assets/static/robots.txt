@@ -10,3 +10,6 @@ Disallow: /
 User-agent: *
 Disallow: /txs
 Disallow: /tx/
+Disallow: /api
+Disallow: /socket/websocket
+Disallow: /phoenix/live_reload/socket/websocket
