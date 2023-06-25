@@ -7,3 +7,6 @@ User-agent: AhrefsBot
 Disallow: /
 User-agent: SemrushBot
 Disallow: /
+User-agent: *
+Disallow: /txs
+Disallow: /tx/
